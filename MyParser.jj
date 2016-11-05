@@ -1,0 +1,261 @@
+/**Set Options**/
+
+options{
+	IGNORE_CASE=true; /**NOT CASE SENSITIVE**/
+}
+
+/**User Code**/
+
+PARSER_BEGIN(MyParser)
+
+public class MyParser {
+	public static void main(String args[]) {
+		MyParser tokeniser;
+		if (args.length == 0) {
+			System.out.println("Parser: Reading from standard input...");
+			tokeniser = new MyParser(System.in);
+		} 
+		else{
+			System.out.println("Parser: Reading from file " + args[0] + "...");
+			try {
+					tokeniser = new MyParser(new java.io.FileInputStream(args[0]));
+			} 
+			catch (java.io.FileNotFoundException e) {
+				System.out.println("Parser: File " + args[0] + " not found.");
+				return;
+			}
+		} 
+		try {
+			tokeniser.program();
+			System.out.println("Parser: Completed Reading File.");
+		} 
+		catch (ParseException e) {
+			System.out.println(e.getMessage());
+			System.out.println("Parser: Encountered errors during parse.");
+		}
+	}
+}
+PARSER_END(MyParser)
+
+
+/**Specify the Tokens For Lexical Analysis**/
+TOKEN_MGR_DECLS :
+{
+static int commentNesting = 0;
+}
+SKIP : /*** Ignoring spaces/tabs/newlines ***/
+{
+" "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+| < "//" (~["\n"])* "\n" >
+}
+SKIP : /* COMMENTS */
+{
+"/*" { commentNesting++; } : IN_COMMENT
+}
+<IN_COMMENT> SKIP :
+{
+		"/*" { commentNesting++; }
+	| 	"*/" { commentNesting--;
+	if (commentNesting == 0)
+	SwitchTo(DEFAULT);
+	}
+	| <~[]>
+}
+
+TOKEN :{
+		<COMMA : ",">
+	|	<SEMIC : ";">
+	|	<COLON : ":">
+	|	<ASSIGN : "=">
+	|	<LCHAIN : "{">
+	|	<RCHAIN : "}">
+	|	<LBR : "(">
+	|	<RBR : ")">
+	|	<PLUS : "+">
+	|	<MINUS : "-">
+	|	<UNDERSCORE : "_">
+	|	<NOTOP : "~">
+	|	<OROP : "||">
+	|	<ANDOP : "&&">
+	|	<BOOLEQLS : "==">
+	|	<NOTEQLS : "!=">
+	|	<LESSTHAN : "<">
+	|	<GREATERTHAN : ">">
+	|	<LESSEQL : "<=">
+	|	<GREATEQL : ">=">
+	|	<VARIABLE : "var">
+	|	<CONSTANT : "const">
+	|	<RETURN : "return">
+	|	<INTEGER : "integer">
+	|	<BOOLEAN : "boolean">
+	|	<VOID : "void">
+	|	<MAIN : "main">
+	|	<IF : "if">
+	|	<ELSE : "else">
+	|	<TRUE : "true">
+	|	<FALSE : "false">
+	|	<WHILE : "while">
+	|	<SKIPSKIP : "skip">
+}
+
+TOKEN :{
+	  <NUM : (<DIGIT>) + >
+	| < #DIGIT : ("-")? ["0" - "9"]>
+	| <ID : <LETTER>(<LETTER> | <UNDERSCORE> | <DIGIT>)*>
+	| < #LETTER : ["a" - "z", "A" - "Z"]>
+}
+
+TOKEN :{
+	<OTHER : ~[]>
+}
+
+/**PRODUCTION RULES**/
+void program() : {}{
+	decl_list()
+	function_list()
+	main()
+	<EOF>
+}
+
+void decl_list() : {}{
+	(decl() <SEMIC> decl_list())?
+}
+
+void decl() : {}{
+	var_decl() | const_decl()
+}
+
+void var_decl() : {}{
+	<VARIABLE> <ID> <COLON> type()
+}
+
+void const_decl() : {}{
+	<CONSTANT> <ID> <COLON> type() <ASSIGN> expression()
+}
+
+void function_list() : {}{
+	(function() function_list())?
+}
+
+void function() : {}{
+	type() <ID> <LBR> parameter_list() <RBR>
+	<LCHAIN>
+		decl_list()
+		statement_block()
+		<RETURN> <LBR> (expression())? <RBR> <SEMIC> /**ARE BRACKETS IN THE RIGHT PLACE?**/
+	<RCHAIN>
+}
+
+
+void type () : {}{
+	<INTEGER> | <BOOLEAN> | <VOID>
+}
+
+void parameter_list() : {}{
+	(nemp_parameter_list())?
+}
+
+void nemp_parameter_list() : {}{
+	<ID> <COLON> (type() [<COMMA> nemp_parameter_list()]) /*****************CHANGED*******************/
+}
+
+void main() : {}{
+	[
+	<MAIN>
+	<LCHAIN>
+		decl_list()
+		statement_block()
+	<RCHAIN>
+	]
+}
+
+void statement_block() : {}{
+	(statement() statement_block())?
+}
+
+void statement() : {}{
+		<ID> 
+		(
+				<ASSIGN> expression() <SEMIC> 
+			|	<LBR> arg_list() <RBR> <SEMIC>
+		)	
+	|	<LCHAIN> statement_block() <RCHAIN>
+	|	<IF> condition() <LCHAIN> statement_block() <RCHAIN> [<ELSE> <LCHAIN> statement_block() <RCHAIN>] /*****OPTION TO ELSE???*****/
+	|	<WHILE> condition() <LCHAIN> statement_block() <RCHAIN>
+	|	<SKIPSKIP> <SEMIC>
+}
+
+/***************************************************************************************************************/
+/*******************************************EXPRESSION RULE*****************************************************/
+/***************************************************************************************************************/
+void expression() : {}{
+		fragment() [binary_arith_op() expression()]	
+	|	<LBR> expression() <RBR> [binary_arith_op() expression()]
+	//|	<ID> <LBR> arg_list() <RBR>
+}
+
+void binary_arith_op() : {}{
+		<PLUS> | <MINUS>
+}
+
+void fragment() : {}{
+		<ID>
+		(
+			[<LBR> arg_list() <RBR>]
+		)
+	|	<NUM>
+	|	<TRUE>
+	|	<FALSE>
+	|	binary_arith_op() fragment()
+}
+
+/***************************************************************************************************************/
+/*******************************************CONDITION RULE******************************************************/
+/***************************************************************************************************************/
+
+/*********************ORIGINAL***********************/
+/*
+void condition() : {}{
+		<NOTOP> condition()
+	|	<LBR> condition() <RBR>
+	|	expression() comp_op() expression()
+	|	condition() <LBR> <OROP> | <ANDOP> <RBR> condition()
+}
+*/
+
+/********************EDITED***************************/
+void condition() : {}{
+		<NOTOP>
+		(
+				condition() 
+			|	conditionPrime() //[conditionPrime()]
+		)
+	|	LOOKAHEAD(1) <LBR> condition() <RBR> [conditionPrime()]
+	|	expression() comp_op() expression() [conditionPrime()]
+	//|	(<ANDOP> | <OROP>) condition()
+}
+
+void conditionPrime() : {}{
+	(<ANDOP> | <OROP>) condition()
+}
+
+void comp_op() : {}{
+		<BOOLEQLS>
+	|	<NOTEQLS>
+	|	<LESSTHAN>
+	|	<LESSEQL>
+	|	<GREATERTHAN>
+	|	<GREATEQL>
+}
+
+void arg_list() : {}{
+	(nemp_arg_list())?
+}
+
+void nemp_arg_list() : {}{
+	<ID> [(<COMMA> nemp_arg_list())]
+}

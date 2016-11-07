@@ -192,15 +192,36 @@ void statement() : {}{
 /***************************************************************************************************************/
 /*******************************************EXPRESSION RULE*****************************************************/
 /***************************************************************************************************************/
+
+/*********************ORIGINAL***********************/
+/*
+void expression() : {}{
+		fragment() binary_arith_op() fragment()
+	|	<LBR> expression() <RBR>
+	|	<ID> <LBR> arg_list() <RBR>
+	|	fragment()
+}
+*/
+
 void expression() : {}{
 		fragment() [binary_arith_op() expression()]	
-	|	<LBR> expression() <RBR> [binary_arith_op() expression()]
-	//|	<ID> <LBR> arg_list() <RBR>
 }
 
 void binary_arith_op() : {}{
 		<PLUS> | <MINUS>
 }
+
+/*********************ORIGINAL***********************/
+/*
+void fragment() : {}{
+		<ID>
+	|	<MINUS> <ID>
+	|	<NUM>
+	|	<TRUE>
+	|	<FALSE>
+	|	expression()
+}
+*/
 
 void fragment() : {}{
 		<ID>
@@ -210,7 +231,7 @@ void fragment() : {}{
 	|	<NUM>
 	|	<TRUE>
 	|	<FALSE>
-	|	binary_arith_op() fragment()
+	|	<MINUS> fragment()
 }
 
 /***************************************************************************************************************/
@@ -229,14 +250,9 @@ void condition() : {}{
 
 /********************EDITED***************************/
 void condition() : {}{
-		<NOTOP>
-		(
-				condition() 
-			|	conditionPrime() //[conditionPrime()]
-		)
-	|	LOOKAHEAD(1) <LBR> condition() <RBR> [conditionPrime()]
+		<NOTOP> condition() 
+	|	<LBR> condition() <RBR> [conditionPrime()]
 	|	expression() comp_op() expression() [conditionPrime()]
-	//|	(<ANDOP> | <OROP>) condition()
 }
 
 void conditionPrime() : {}{

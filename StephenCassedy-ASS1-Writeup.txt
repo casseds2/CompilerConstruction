@@ -1,0 +1,82 @@
+Name: Stephen Cassedy
+Student ID: 13391736
+E-mail: stephen.cassedy2@mail.dcu.ie
+Module: Compiler Construction
+
+//*********************************************************************************************************//
+//***************************************PARSER JAVA CODE**************************************************//
+//*********************************************************************************************************//
+
+/*Just before the java code, in options I have set IGNORE_CASE to true so that the language is not case sensitive*/
+
+The java code in my project is much the same as in the JavaCC pdf examples contained at http://www.computing.dcu.ie/~davids/courses/CA4003/CA4003_JavaCC_2p.pdf.
+My differences are that instead of printing out the parsed code, it will just print a 'completed' statement after calling the prog() method.
+
+
+//*********************************************************************************************************//
+//*****************************************LEXICAL TOKENS**************************************************//
+//*********************************************************************************************************//
+
+Next is where I have defined all of the lexical chars/tokens. First task was to remove white spaces and special characters such as 'n'. In accordance with the notes, this makes the lexical analysis alot easier to perform.
+
+Next I defined all tokens (punctuation and key words). Still following same structure as JavaCC notes.
+
+Nums, IDs and Letters varied slightly from the given examples.
+-------- (-)? was required before the number definition to include negative numbers.
+-------- ID had to be modified to be able to be a letter, num or underscore.
+-------- Letter remained the same as defined in the example.
+
+Tokens by default cannot be called as IDs.
+
+//*********************************************************************************************************//
+//********************************************GRAMMAR RULES************************************************//
+//*********************************************************************************************************//
+
+Grammar rules is where the bulk of the work is done once the lexical analyser is up and running.
+The two functions that had to be altered were the expression() function and the condition() function. Most of the others just required smalll changes syuch as the resolution of choice conflicts.
+
+/***EXAMPLE CHOICE CONFLICT***/
+void nemp_arg_list() : {}{
+		<ID>
+	|	<ID> <COMMA> nemp_arg_list()	
+}
+
+/***CHANGES INTO***/
+
+void nemp_arg_list() : {}{
+	<ID> [(<COMMA> nemp_arg_list())]
+}
+
+This change will resolve the choice conflict produced by <ID>. By placing optional brackets [] around the rule, <ID> can either be <ID> or <COMMA> nemp_arg_list() and <ID> becomes more of a generic term. This allows the parser to decide which path to take by eliminating choice.
+
+/***EXPRESSION FUNCTION***/
+Left-recursion appeared in expression. When expression() called fragment(), fragment() would call expression() due to left recursion. I played around with making a fragmentPrime() function for a long time before realising that it was not needed. Instead I have most of my arithmetic being handled in fragment(). I took expression() out of it and replaced it with binary_arith_op() fragment() which will call itself until the aritmetic expression is done. I also moved the <ID><LBR>arg_list()<RBR> out of expression and shifted it over to fragment() in my attempt to perform most of the function in fragment(). I did place an optional [binary_arith_op() expression()] after the call of fragment in expression. It will catch expressions in the form x = x + 1; Fragment mainly identifies what the expression can be, eg NUM, ID, TRUE, FALSE or those beginning with MINUS. When I moved <ID> <LBR> arg_list() <RBR> to fragment() it produced a choice conflict with the already existing <ID> so I resolved using the same method as shown above. In the last line of fragment I have a <MINUS> before fragment. This could have been changed to binary_arith_op() to cater for a case where the code is in the form result = result + +x; but I decided to keep it as just a <MINUS> due to the specification in the CCAL file. 
+
+/***CONDITION FUNCTION***/
+The second case of left-recursion was in condition(). This was caused by the call of condition() on the last line of the original condition(). The first line caters for the NOT '~' condition. Once the parser finds a not token it will re-enter condition(). As far as I understand, this <NOTOP> can be called before the brackets of the IF statement. The brackets are then taken care of in the second line where it will reiterate though condition() and can once again check for the <NOT> token. In the case of this function, I did make a prime function called conditionPrime(). It simply dealt with conditional statements that had '||' or '&&' in them. This might not always be the case so when it is used, I placed it in optional brackets. Once the <LBR> is hit on the second line, we enter condition again. Hopefully here it picks up and expression with an operator between it. This is when expression() comp_op() expression() picks up the expressions. Once again, conditionPrime() will be called optionally here in the case of the '||' or '&&' appearing after the evaluation of the two expressions. If conditionPrime() is called, it will just cycle back to function and re-check if anything is left in the conditional statment.
+
+
+These were the two big changes from the rules given in the CCAL File that I found.
+
+
+
+/*******************************************************************************************************************************************/
+/********************************************************PLAGIARISM STATEMENT***************************************************************/
+/*******************************************************************************************************************************************/
+
+I/We declare that this material, which I/We now submit for assessment, is entirely my/our
+own work and has not been taken from the work of others, save and to the extent that such
+work has been cited and acknowledged within the text of my/our work. I/We understand
+that plagiarism, collusion, and copying are grave and serious offences in the university and
+accept the penalties that would be imposed should I engage in plagiarism, collusion or
+copying. I/We have read and understood the Assignment Regulations. I/We have identified
+and included the source of all facts, ideas, opinions, and viewpoints of others in the
+assignment references. Direct quotations from books, journal articles, internet sources,
+module text, or any other source whatsoever are acknowledged and the source cited are
+identified in the assignment references. This assignment, or any part of it, has not been
+previously submitted by me/us or any other person for assessment on this or any other
+course of study.
+I/We have read and understood the referencing guidelines found at
+http://www.dcu.ie/info/regulations/plagiarism.shtml , https://www4.dcu.ie/students/az/plagiarism
+and/or recommended in the assignment guidelines.
+Name(s): Stephen Cassedy Date: 07/11/2016

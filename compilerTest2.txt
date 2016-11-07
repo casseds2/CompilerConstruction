@@ -3,7 +3,9 @@ integer multiply (x:integer , y:integer)
 	var result:integer;
 	var minus_sign:boolean;
 	//figure out sign of result and convert args to absolute values
-	if(x < 0 && y >= 0)
+
+	/* Hello */
+	if((x < 0) && y >= 0)
 	{
 		minus_sign = true;
 		x = -x ;
@@ -11,14 +13,14 @@ integer multiply (x:integer , y:integer)
 
 	else
 	{
-		if y < 0 && x >= 0
+		if ~y < 0 && ~x >= 0
 		{
 			minus_sign = true ;
 			y = -y ;
 		}
 		else
 		{
-			if ( x < 0 ) && y < 0
+			if ~(~x < 0 ) && y < 0
 		{
 			minus_sign = false;
 			x = -x ;
@@ -32,13 +34,13 @@ integer multiply (x:integer , y:integer)
 }
 
 	result = 0;
-	while ( y > 0)
+	while ( y > -0)
 	{
 		result = result + x;
 		y = y - 1;
 	}
 
-		if ~minus_sign == true
+		if minus_sign == true
 	{
 		result = -result;
 	}
